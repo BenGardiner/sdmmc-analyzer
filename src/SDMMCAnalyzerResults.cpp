@@ -29,15 +29,45 @@ void SDMMCAnalyzerResults::GenerateBubbleText(U64 frame_index, Channel& channel,
 
 	case FRAMETYPE_COMMAND:
 	{
-		char str_cmd[4];
 		char str_arg[33];
 
-		AnalyzerHelpers::GetNumberString(frame.mData1, Decimal, 6, str_cmd, sizeof(str_cmd));
 		AnalyzerHelpers::GetNumberString(frame.mData2, display_base, 32, str_arg, sizeof(str_arg));
 
-		AddResultString("CMD");
-		AddResultString("CMD", str_cmd);
-		AddResultString("CMD", str_cmd, ", arg=", str_arg);
+		if (frame.mData1 - 6 /* CMD6 SWITCH */ == 0)
+		{
+			AddResultString("SWITCH");
+
+			U8 mode = (frame.mData2>>24) & 0xff;
+			if (mode == 3 /* mode WRITE_BYTE */)
+			{
+				U8 index, value, flags;
+				char index_str[5], value_str[5], flags_str[5];
+
+				index = (frame.mData2>>16) & 0xff;
+				value = (frame.mData2>>8) & 0xff;
+				flags = (frame.mData2) & 0xff;
+
+				AnalyzerHelpers::GetNumberString(index, Decimal, 8, index_str, 5);
+				AnalyzerHelpers::GetNumberString(value, Hexadecimal, 8, value_str, 5);
+				AnalyzerHelpers::GetNumberString(flags, Hexadecimal, 8, flags_str, 5);
+
+				AddResultString("[", index_str, "]=", value_str);
+				AddResultString("SWITCH WRITE BYTE [", index_str, "]=", value_str, " flags=", flags_str);
+			}
+			else
+			{
+				AddResultString("SWITCH, arg=", str_arg);
+			}
+		}
+		else
+		{
+			char str_cmd[4];
+			AnalyzerHelpers::GetNumberString(frame.mData1, Decimal, 6, str_cmd, sizeof(str_cmd));
+
+			AddResultString("CMD");
+			AddResultString("CMD", str_cmd);
+			AddResultString("CMD", str_cmd, ", arg=", str_arg);
+		}
 		break;
 	}
 
